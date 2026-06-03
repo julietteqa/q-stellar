@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Stellar Engine HD</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Jura:wght@300;500;700&family=Roboto+Mono:wght@300;400;500&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Three.js r128 via CDN (No CORS issues) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+
+<body>
+    <div id="loading">
+        <h2>INITIALIZING QUANTUM ENGINE</h2>
+        <p>Downloading HD Textures...</p>
+        <div class="progress-bar">
+            <div id="loadProgress"></div>
+        </div>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <div id="ui-container">
+        <!-- TOP BAR: TELEMETRY (10+ Data points) -->
+        <header class="hud-panel top-bar">
+            <div class="brand">Q-STELLAR <span>v4.0</span></div>
+            <div class="telemetry">
+                <div class="t-item"><span>FPS</span><strong id="tFPS">60</strong></div>
+                <div class="t-item"><span>OBJ</span><strong id="tObj">0</strong></div>
+                <div class="t-item"><span>MASS</span><strong id="tMass">0.00</strong></div>
+                <div class="t-item"><span>ENTROPY</span><strong id="tEnt">0.00%</strong></div>
+                <div class="t-item"><span>COHERENCE</span><strong id="tCoh">100%</strong></div>
+                <div class="t-item"><span>CAM X</span><strong id="tCamX">0</strong></div>
+                <div class="t-item"><span>CAM Y</span><strong id="tCamY">0</strong></div>
+                <div class="t-item"><span>CAM Z</span><strong id="tCamZ">0</strong></div>
+                <div class="t-item"><span>RUNTIME</span><strong id="tTime">0s</strong></div>
+            </div>
+            <button id="btnToggleUI" class="icon-btn">HIDE UI</button>
+        </header>
+
+        <!-- LEFT PANEL: PHYSICS & CREATOR (20+ Controls) -->
+        <aside class="hud-panel left-panel scrollable">
+            <!-- Section: Physics -->
+            <div class="panel-section">
+                <h3>[1] MACRO PHYSICS</h3>
+                <div class="control-row">
+                    <label>TIME FLOW [<span id="valTime">1.0</span>x]</label>
+                    <input type="range" id="simTime" min="0" max="10" step="0.1" value="1">
+                </div>
+                <div class="control-row">
+                    <label>GRAVITY (G) [<span id="valG">1.0</span>]</label>
+                    <input type="range" id="simG" min="0" max="20" step="0.1" value="1">
+                </div>
+                <div class="control-row">
+                    <label>DARK MATTER (Friction) [<span id="valDark">0.0</span>]</label>
+                    <input type="range" id="simDark" min="0" max="0.05" step="0.001" value="0">
+                </div>
+
+                <div class="grid-2">
+                    <label class="toggle"><input type="checkbox" id="tglBounce"><span class="slider"></span>
+                        ELASTIC_COLL</label>
+                    <label class="toggle"><input type="checkbox" id="tglAntiG"><span class="slider"></span>
+                        ANTI_GRAVITY</label>
+                </div>
+
+                <div class="btn-group">
+                    <button id="btnPlayPause" class="btn primary">PAUSE SIM</button>
+                    <button id="btnReverse" class="btn warning">REVERSE TIME</button>
+                </div>
+            </div>
+
+            <!-- Section: Creator -->
+            <div class="panel-section">
+                <h3>[2] ENTITY SPAWNER</h3>
+                <p class="help-text">Set parameters, then click in space to spawn.</p>
+                <select id="spawnType" class="ui-select">
+                    <option value="earth">HD Earth (Terrestrial)</option>
+                    <option value="mars">HD Mars (Terrestrial)</option>
+                    <option value="moon">HD Moon (Satellite)</option>
+                    <option value="gas_giant">Gas Giant (Jupiter-like)</option>
+                    <option value="star">G-Type Star (Sun)</option>
+                    <option value="blackhole">Singularity (Black Hole)</option>
+                    <option value="quantum">Q-Planet (Superposition)</option>
+                </select>
+
+                <div class="control-row mt-2">
+                    <label>MASS [<span id="valSpawnMass">50</span> U]</label>
+                    <input type="range" id="spawnMass" min="1" max="10000" step="1" value="50">
+                </div>
+                <div class="control-row">
+                    <label>INITIAL VELOCITY X [<span id="valVx">0.0</span>]</label>
+                    <input type="range" id="spawnVx" min="-20" max="20" step="0.5" value="0">
+                </div>
+                <div class="control-row">
+                    <label>INITIAL VELOCITY Z [<span id="valVz">0.0</span>]</label>
+                    <input type="range" id="spawnVz" min="-20" max="20" step="0.5" value="0">
+                </div>
+                <button id="btnSwarm" class="btn secondary outline mt-2">DEPLOY RANDOM SWARM (x50)</button>
+            </div>
+
+            <!-- Section: Presets -->
+            <div class="panel-section">
+                <h3>[3] SCENARIOS</h3>
+                <div class="grid-2 gap-1">
+                    <button class="btn preset-btn" data-preset="solar">Solar System</button>
+                    <button class="btn preset-btn" data-preset="binary">Binary Stars</button>
+                    <button class="btn preset-btn" data-preset="threebody">3-Body Chaos</button>
+                    <button class="btn preset-btn" data-preset="galaxy">Galaxy Core</button>
+                    <button class="btn preset-btn" data-preset="quantum">Q-Cloud</button>
+                    <button id="btnClear" class="btn danger">PURGE ALL</button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- RIGHT PANEL: QUANTUM & GRAPHICS (15+ Controls) -->
+        <aside class="hud-panel right-panel scrollable">
+            <!-- Section: Quantum Mechanics -->
+            <div class="panel-section border-magenta">
+                <h3 class="text-magenta">[4] QUANTUM MECHANICS</h3>
+                <label class="toggle"><input type="checkbox" id="tglHeisenberg" checked><span
+                        class="slider magenta"></span> HEISENBERG JITTER</label>
+                <label class="toggle"><input type="checkbox" id="tglTunneling"><span class="slider magenta"></span>
+                    QUANTUM TUNNELING</label>
+
+                <div class="control-row mt-2">
+                    <label class="text-magenta">TUNNELING PROB. [<span id="valTunnel">10</span>%]</label>
+                    <input type="range" id="simTunnelProb" min="1" max="100" step="1" value="10" class="slider-magenta">
+                </div>
+
+                <div class="btn-group mt-2">
+                    <button id="btnEntangle" class="btn quantum">ENTANGLE TARGETS</button>
+                    <button id="btnCollapse" class="btn quantum outline">FORCE WAVE COLLAPSE</button>
+                </div>
+            </div>
+
+            <!-- Section: Graphics -->
+            <div class="panel-section border-cyan">
+                <h3 class="text-cyan">[5] 3D ENGINE & VISUALS</h3>
+                <label class="toggle"><input type="checkbox" id="tglTrails" checked><span class="slider cyan"></span>
+                    ORBIT TRAILS</label>
+                <div class="control-row">
+                    <label class="text-cyan">TRAIL LENGTH [<span id="valTrails">300</span>]</label>
+                    <input type="range" id="simTrails" min="50" max="2000" step="50" value="300" class="slider-cyan">
+                </div>
+
+                <div class="grid-2 mt-2">
+                    <label class="toggle"><input type="checkbox" id="tglLabels" checked><span
+                            class="slider cyan"></span> 3D LABELS</label>
+                    <label class="toggle"><input type="checkbox" id="tglGrid"><span class="slider cyan"></span> XYZ
+                        GRID</label>
+                    <label class="toggle"><input type="checkbox" id="tglBloom" checked><span class="slider cyan"></span>
+                        HALO / GLOW</label>
+                    <label class="toggle"><input type="checkbox" id="tglVectors"><span class="slider cyan"></span>
+                        VEL_VECTORS</label>
+                </div>
+
+                <div class="control-row mt-2">
+                    <label class="text-cyan">BACKGROUND AMBIENCE [<span id="valBg">0.5</span>]</label>
+                    <input type="range" id="simBg" min="0" max="1" step="0.1" value="0.5" class="slider-cyan">
+                </div>
+
+                <button id="btnResetCam" class="btn secondary mt-2">RESET CAMERA POS</button>
+            </div>
+        </aside>
+
+        <!-- BOTTOM PANEL: INSPECTOR (10+ Controls) -->
+        <footer class="hud-panel bottom-panel hidden" id="inspectorPanel">
+            <div class="inspector-grid">
+                <!-- Info -->
+                <div class="insp-info">
+                    <h3 id="inspName">TARGET_ID</h3>
+                    <div class="insp-data">
+                        <div>CLASS: <strong id="inspType">---</strong></div>
+                        <div>STATE: <strong id="inspState" class="text-magenta">---</strong></div>
+                        <div>DIST TO SUN: <strong id="inspDist">0.00</strong> Mm</div>
+                    </div>
+                </div>
+                <!-- Vectors -->
+                <div class="insp-vectors">
+                    <div class="v-row"><span>POS:</span> <span id="iPx">0</span>X <span id="iPy">0</span>Y <span
+                            id="iPz">0</span>Z</div>
+                    <div class="v-row"><span>VEL:</span> <span id="iVx">0</span>X <span id="iVy">0</span>Y <span
+                            id="iVz">0</span>Z</div>
+                    <div class="v-row text-cyan"><span>SPEED:</span> <strong id="iSpd">0.00</strong> km/s</div>
+                </div>
+                <!-- Controls -->
+                <div class="insp-actions">
+                    <div class="control-row">
+                        <label>OVERRIDE MASS [<span id="iMassVal">0</span>]</label>
+                        <input type="range" id="inspMassSlider" min="0.1" max="15000" step="1">
+                    </div>
+                    <div class="btn-group">
+                        <button id="btnFollow" class="btn primary">TRACK OBJ</button>
+                        <button id="btnDupe" class="btn quantum outline">DUPLICATE</button>
+                        <button id="btnDelete" class="btn danger">DESTROY</button>
+                    </div>
+                    <button id="btnCloseInsp" class="icon-btn close-btn">✕</button>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- 3D Labels container -->
+    <div id="labels-container"></div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
